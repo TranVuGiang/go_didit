@@ -8,9 +8,9 @@ import (
 
 // CreateSessionRequest holds the payload for creating a new KYC session.
 type CreateSessionRequest struct {
-	WorkflowID string `json:"workflow_id"`
-	VendorData string `json:"vendor_data,omitempty"`
-	Callback   string `json:"callback,omitempty"`
+	WorkflowID string  `json:"workflow_id"`
+	VendorData string  `json:"vendor_data,omitempty"`
+	Callback   *string `json:"callback,omitempty"`
 }
 
 // CreateSessionResponse is the response from the create session endpoint.
