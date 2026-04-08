@@ -1,7 +1,9 @@
 package godidit_test
 
 import (
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -32,4 +34,26 @@ func newTestClient(t *testing.T) *godidit.Client {
 	}
 
 	return client
+}
+
+// newDummyClient creates a client with a fake API key for validation-only tests
+// that never reach the network.
+func newDummyClient(t *testing.T, opts ...godidit.Option) *godidit.Client {
+	t.Helper()
+	c, err := godidit.NewClient("dummy-api-key-for-validation", opts...)
+	if err != nil {
+		t.Fatalf("newDummyClient: %v", err)
+	}
+	return c
+}
+
+// downloadImageHelper fetches image bytes from a URL for use in integration tests.
+func downloadImageHelper(t *testing.T, rawURL string) ([]byte, error) {
+	t.Helper()
+	resp, err := http.Get(rawURL) //nolint:noctx
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return io.ReadAll(resp.Body)
 }

@@ -21,6 +21,13 @@ var (
 	// Validation errors.
 	ErrEmptySessionID  = errors.New("sessionId is required")
 	ErrEmptyWorkflowID = errors.New("workflow_id is required")
+
+	// KYC verification errors.
+	ErrEmptyFrontImage        = errors.New("front_image is required for id verification")
+	ErrEmptyFullName          = errors.New("full_name is required for AML screening")
+	ErrEmptyNationalID        = errors.New("identification_number is required for database validation")
+	ErrImageDownloadFailed    = errors.New("failed to download image")
+	ErrNoVerificationPerformed = errors.New("no verification could be performed: insufficient kyc data provided")
 )
 
 // APIError is returned when the server responds with a 4xx/5xx status code.
