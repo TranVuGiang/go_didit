@@ -162,7 +162,7 @@ func (c *Client) VerifyKyc(ctx context.Context, kyc *KycInfo) (*KycVerifyResult,
 			defer wg.Done()
 
 			req := &DatabaseValidationRequest{
-				IssuingState:         *kyc.Nationality,
+				IssuingState:         ToAlpha3(*kyc.Nationality), // alpha-2 "VN" → alpha-3 "VNM"
 				ValidationType:       "one_by_one",
 				IdentificationNumber: *kyc.NationalID,
 				VendorData:           vendorData,
@@ -177,10 +177,10 @@ func (c *Client) VerifyKyc(ctx context.Context, kyc *KycInfo) (*KycVerifyResult,
 				req.DateOfBirth = *kyc.DateOfBirth
 			}
 			if kyc.Gender != nil {
-				req.Gender = *kyc.Gender
+				req.Gender = ToGenderCode(*kyc.Gender) // "male" → "M"
 			}
 			if kyc.Type != nil {
-				req.DocumentType = *kyc.Type
+				req.DocumentType = ToDocTypeCode(*kyc.Type) // "ID_CARD" → "ID"
 			}
 			if kyc.Address != nil {
 				req.Address = *kyc.Address
