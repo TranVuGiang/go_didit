@@ -26,7 +26,7 @@ var (
 	ErrEmptyFrontImage        = errors.New("front_image is required for id verification")
 	ErrEmptyFullName          = errors.New("full_name is required for AML screening")
 	ErrEmptyNationalID        = errors.New("identification_number is required for database validation")
-	ErrImageDownloadFailed    = errors.New("failed to download image")
+	ErrImageDecodeFailed      = errors.New("failed to decode base64 image")
 	ErrNoVerificationPerformed = errors.New("no verification could be performed: insufficient kyc data provided")
 )
 

@@ -2,10 +2,10 @@ package godidit
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -32,11 +32,14 @@ type KycInfo struct {
 	City             *string `db:"city"`
 	State            *string `db:"state"`
 	ZipCode          *string `db:"zip_code"`
-	// ImageKyc is the S3 URL of the user's selfie image.
+	// ImageKyc is the base64-encoded selfie image.
+	// Accepts raw base64 or data URI format ("data:image/jpeg;base64,...").
 	ImageKyc         *string `db:"image_kyc"`
-	// FrontIdImage is the S3 URL of the front side of the identity document.
+	// FrontIdImage is the base64-encoded front side of the identity document.
+	// Accepts raw base64 or data URI format.
 	FrontIdImage     *string `db:"front_id_image"`
-	// BackIdImage is the S3 URL of the back side of the identity document.
+	// BackIdImage is the base64-encoded back side of the identity document.
+	// Accepts raw base64 or data URI format.
 	BackIdImage      *string `db:"back_id_image"`
 }
 
@@ -55,7 +58,7 @@ type KycVerifyResult struct {
 //   - AMLScreening:   called when FirstName and LastName are set
 //   - DatabaseValidation: called when NationalID and Nationality are set
 //
-// Images are downloaded from their S3 URLs before upload.
+// Image fields (FrontIdImage, BackIdImage, ImageKyc) must be base64-encoded strings.
 // On any error, the context is cancelled and the first error is returned (fail-fast).
 func (c *Client) VerifyKyc(ctx context.Context, kyc *KycInfo) (*KycVerifyResult, error) {
 	if kyc == nil {
@@ -91,9 +94,9 @@ func (c *Client) VerifyKyc(ctx context.Context, kyc *KycInfo) (*KycVerifyResult,
 		go func() {
 			defer wg.Done()
 
-			frontBytes, err := downloadImage(ctx, *kyc.FrontIdImage)
+			frontBytes, err := DecodeBase64Image(*kyc.FrontIdImage)
 			if err != nil {
-				fail(fmt.Errorf("%w: front_id_image: %w", ErrImageDownloadFailed, err))
+				fail(fmt.Errorf("%w: front_id_image: %w", ErrImageDecodeFailed, err))
 				return
 			}
 
@@ -103,9 +106,9 @@ func (c *Client) VerifyKyc(ctx context.Context, kyc *KycInfo) (*KycVerifyResult,
 			}
 
 			if kyc.BackIdImage != nil {
-				backBytes, err := downloadImage(ctx, *kyc.BackIdImage)
+				backBytes, err := DecodeBase64Image(*kyc.BackIdImage)
 				if err != nil {
-					fail(fmt.Errorf("%w: back_id_image: %w", ErrImageDownloadFailed, err))
+					fail(fmt.Errorf("%w: back_id_image: %w", ErrImageDecodeFailed, err))
 					return
 				}
 				req.BackImage = backBytes
@@ -187,9 +190,9 @@ func (c *Client) VerifyKyc(ctx context.Context, kyc *KycInfo) (*KycVerifyResult,
 			}
 
 			if kyc.ImageKyc != nil {
-				selfieBytes, err := downloadImage(ctx, *kyc.ImageKyc)
+				selfieBytes, err := DecodeBase64Image(*kyc.ImageKyc)
 				if err != nil {
-					fail(fmt.Errorf("%w: image_kyc: %w", ErrImageDownloadFailed, err))
+					fail(fmt.Errorf("%w: image_kyc: %w", ErrImageDecodeFailed, err))
 					return
 				}
 				req.Selfie = selfieBytes
@@ -220,22 +223,17 @@ func (c *Client) VerifyKyc(ctx context.Context, kyc *KycInfo) (*KycVerifyResult,
 	return &result, nil
 }
 
-// downloadImage fetches raw image bytes from a URL (e.g. an S3 presigned URL).
-func downloadImage(ctx context.Context, rawURL string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+// DecodeBase64Image decodes a base64-encoded image string to raw bytes.
+// Accepts raw base64 or data URI format ("data:image/jpeg;base64,...").
+func DecodeBase64Image(b64str string) ([]byte, error) {
+	if idx := strings.Index(b64str, ","); idx != -1 {
+		b64str = b64str[idx+1:]
+	}
+	b64str = strings.TrimSpace(b64str)
+	data, err := base64.StdEncoding.DecodeString(b64str)
 	if err != nil {
-		return nil, err
+		// Fallback: try without padding (some encoders omit '=')
+		data, err = base64.RawStdEncoding.DecodeString(b64str)
 	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("image download returned status %d", resp.StatusCode)
-	}
-
-	return io.ReadAll(resp.Body)
+	return data, err
 }

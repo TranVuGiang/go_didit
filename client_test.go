@@ -1,9 +1,7 @@
 package godidit_test
 
 import (
-	"io"
 	"log/slog"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
@@ -45,15 +43,4 @@ func newDummyClient(t *testing.T, opts ...godidit.Option) *godidit.Client {
 		t.Fatalf("newDummyClient: %v", err)
 	}
 	return c
-}
-
-// downloadImageHelper fetches image bytes from a URL for use in integration tests.
-func downloadImageHelper(t *testing.T, rawURL string) ([]byte, error) {
-	t.Helper()
-	resp, err := http.Get(rawURL) //nolint:noctx
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	return io.ReadAll(resp.Body)
 }

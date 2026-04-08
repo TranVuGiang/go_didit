@@ -28,22 +28,23 @@ func TestSubmitIDVerification_EmptyFrontImage(t *testing.T) {
 	}
 }
 
-// TestSubmitIDVerification_Integration requires DIDIT_FRONT_IMAGE_URL env var
-// pointing to a publicly accessible (or presigned) image URL.
+// TestSubmitIDVerification_Integration requires:
+//   - DIDIT_API_KEY
+//   - DIDIT_FRONT_IMAGE_B64  base64-encoded front document image
+//   - DIDIT_BACK_IMAGE_B64   base64-encoded back document image (optional)
 func TestSubmitIDVerification_Integration(t *testing.T) {
 	t.Parallel()
 
 	client := newTestClient(t)
 
-	frontURL := strings.TrimSpace(os.Getenv("DIDIT_FRONT_IMAGE_URL"))
-	if frontURL == "" {
-		t.Skip("skipping test: DIDIT_FRONT_IMAGE_URL not set")
+	frontB64 := strings.TrimSpace(os.Getenv("DIDIT_FRONT_IMAGE_B64"))
+	if frontB64 == "" {
+		t.Skip("skipping test: DIDIT_FRONT_IMAGE_B64 not set")
 	}
 
-	// Download image to simulate what VerifyKyc does internally.
-	frontBytes, err := downloadImageHelper(t, frontURL)
+	frontBytes, err := godidit.DecodeBase64Image(frontB64)
 	if err != nil {
-		t.Fatalf("failed to download front image: %v", err)
+		t.Fatalf("failed to decode front image: %v", err)
 	}
 
 	req := &godidit.IDVerificationRequest{
@@ -51,11 +52,10 @@ func TestSubmitIDVerification_Integration(t *testing.T) {
 		VendorData: "test-integration",
 	}
 
-	backURL := strings.TrimSpace(os.Getenv("DIDIT_BACK_IMAGE_URL"))
-	if backURL != "" {
-		backBytes, err := downloadImageHelper(t, backURL)
+	if backB64 := strings.TrimSpace(os.Getenv("DIDIT_BACK_IMAGE_B64")); backB64 != "" {
+		backBytes, err := godidit.DecodeBase64Image(backB64)
 		if err != nil {
-			t.Fatalf("failed to download back image: %v", err)
+			t.Fatalf("failed to decode back image: %v", err)
 		}
 		req.BackImage = backBytes
 	}

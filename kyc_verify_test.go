@@ -193,7 +193,8 @@ func TestVerifyKyc_FailFast_CancelsOtherGoroutines(t *testing.T) {
 //
 // Optional:
 //   - DIDIT_KYC_NATIONAL_ID, DIDIT_KYC_NATIONALITY (triggers DatabaseValidation)
-//   - DIDIT_FRONT_IMAGE_URL                         (triggers IDVerification)
+//   - DIDIT_FRONT_IMAGE_B64                         (base64 image, triggers IDVerification)
+//   - DIDIT_BACK_IMAGE_B64                          (base64 image, optional)
 func TestVerifyKyc_Integration(t *testing.T) {
 	t.Parallel()
 
@@ -216,10 +217,10 @@ func TestVerifyKyc_Integration(t *testing.T) {
 	if v := strings.TrimSpace(os.Getenv("DIDIT_KYC_NATIONALITY")); v != "" {
 		kyc.Nationality = &v
 	}
-	if v := strings.TrimSpace(os.Getenv("DIDIT_FRONT_IMAGE_URL")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("DIDIT_FRONT_IMAGE_B64")); v != "" {
 		kyc.FrontIdImage = &v
 	}
-	if v := strings.TrimSpace(os.Getenv("DIDIT_BACK_IMAGE_URL")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("DIDIT_BACK_IMAGE_B64")); v != "" {
 		kyc.BackIdImage = &v
 	}
 
